@@ -3,6 +3,20 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
+import locale
+
+# Configuration du format français
+locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
+
+def format_number_fr(number, decimals=2):
+    """Formate les nombres avec le style français"""
+    try:
+        if decimals == 0:
+            return f"{number:,.0f}".replace(",", " ").replace(".", ",")
+        else:
+            return f"{number:,.{decimals}f}".replace(",", " ").replace(".", ",")
+    except:
+        return str(number)
 
 class BusinessModelProjection:
     def __init__(self, 
@@ -148,6 +162,7 @@ class BusinessModelProjection:
 def main():
     st.title("📊 Simulateur de Modèle Économique Annuel")
     
+    
     st.sidebar.header("Hypothèses Initiales")
     
     # Input parameters
@@ -181,19 +196,23 @@ def main():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric("Chiffre d'affaires annuel", f"{annual_results['Chiffre d\'affaires']:,.2f} €")
-        st.metric("Nombre de commandes", f"{annual_results['Nombre de commandes']:,.0f}")
-        st.metric("Marge brute", f"{annual_results['Marge brute']:,.2f} €")
+        st.metric("Chiffre d'affaires annuel", format_number_fr(annual_results['Chiffre d\'affaires']) + " €")
+        st.metric("Nombre de commandes", format_number_fr(annual_results['Nombre de commandes'], 0))
+        st.metric("Marge brute", format_number_fr(annual_results['Marge brute']) + " €")
     
     with col2:
-        st.metric("Coûts totaux", f"{(annual_results['Coût d\'achat'] + annual_results['Frais de livraison'] + annual_results['Commissions'] + annual_results['Coûts fixes']):,.2f} €")
-        st.metric("Résultat d'exploitation", f"{annual_results['Résultat d\'exploitation']:,.2f} €")
-        st.metric("Résultat net", f"{annual_results['Résultat net']:,.2f} €")
+        total_costs = annual_results['Coût d\'achat'] + annual_results['Frais de livraison'] + \
+                     annual_results['Commissions'] + annual_results['Coûts fixes']
+        st.metric("Coûts totaux", format_number_fr(total_costs) + " €")
+        st.metric("Résultat d'exploitation", format_number_fr(annual_results['Résultat d\'exploitation']) + " €")
+        st.metric("Résultat net", format_number_fr(annual_results['Résultat net']) + " €")
     
     with col3:
-        st.metric("Taux de marge brute", f"{annual_results['Taux de marge brute']:.1f}%")
-        st.metric("Taux de rentabilité d'exploitation", f"{annual_results['Taux de rentabilité d\'exploitation']:.1f}%")
-        st.metric("Taux de rentabilité nette", f"{annual_results['Taux de rentabilité nette']:.1f}%")
+        st.metric("Taux de marge brute", format_number_fr(annual_results['Taux de marge brute'], 1) + "%")
+        st.metric("Taux de rentabilité d'exploitation", 
+                 format_number_fr(annual_results['Taux de rentabilité d\'exploitation'], 1) + "%")
+        st.metric("Taux de rentabilité nette", 
+                 format_number_fr(annual_results['Taux de rentabilité nette'], 1) + "%")
 
     # Graphiques
     st.header("Évolution Mensuelle")
@@ -222,6 +241,18 @@ def main():
     # Affichage des données mensuelles détaillées
     st.header("Détail Mensuel")
     st.dataframe(monthly_df.style.format({
+    formatted_df = monthly_df.style.format({
+        'Trafic': lambda x: format_number_fr(x, 0),
+        'Nombre de commandes': lambda x: format_number_fr(x, 0),
+        'Chiffre d\'affaires': lambda x: format_number_fr(x) + " €",
+        'Coût d\'achat': lambda x: format_number_fr(x) + " €",
+        'Frais de livraison': lambda x: format_number_fr(x) + " €",
+        'Commissions': lambda x: format_number_fr(x) + " €",
+        'Coûts fixes': lambda x: format_number_fr(x) + " €",
+        'Marge brute': lambda x: format_number_fr(x) + " €",
+        'Résultat d\'exploitation': lambda x: format_number_fr(x) + " €",
+        'Résultat net': lambda x: format_number_fr(x) + " €"
+    })
         'Trafic': '{:,.0f}',
         'Nombre de commandes': '{:,.0f}',
         'Chiffre d\'affaires': '{:,.2f} €',
