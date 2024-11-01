@@ -3,20 +3,18 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
-import locale
 
-# Configuration du format français
-locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
-
-def format_number_fr(number, decimals=2):
-    """Formate les nombres avec le style français"""
-    try:
-        if decimals == 0:
-            return f"{number:,.0f}".replace(",", " ").replace(".", ",")
-        else:
-            return f"{number:,.{decimals}f}".replace(",", " ").replace(".", ",")
-    except:
-        return str(number)
+def format_fr(value, decimal=2):
+    """
+    Formate un nombre selon les conventions françaises :
+    - Virgule comme séparateur décimal
+    - Espace comme séparateur des milliers
+    """
+    if isinstance(value, (int, float)):
+        if decimal == 0:
+            return f"{value:,.0f}".replace(",", " ").replace(".", ",")
+        return f"{value:,.{decimal}f}".replace(",", " ").replace(".", ",")
+    return value
 
 class BusinessModelProjection:
     def __init__(self, 
@@ -196,23 +194,24 @@ def main():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric("Chiffre d'affaires annuel", format_number_fr(annual_results['Chiffre d\'affaires']) + " €")
-        st.metric("Nombre de commandes", format_number_fr(annual_results['Nombre de commandes'], 0))
-        st.metric("Marge brute", format_number_fr(annual_results['Marge brute']) + " €")
+        st.metric("Chiffre d'affaires annuel", f"{format_fr(annual_results['Chiffre d\'affaires'])} €")
+        st.metric("Nombre de commandes", f"{format_fr(annual_results['Nombre de commandes'], 0)}")
+        st.metric("Marge brute", f"{format_fr(annual_results['Marge brute'])} €")
     
     with col2:
-        total_costs = annual_results['Coût d\'achat'] + annual_results['Frais de livraison'] + \
-                     annual_results['Commissions'] + annual_results['Coûts fixes']
-        st.metric("Coûts totaux", format_number_fr(total_costs) + " €")
-        st.metric("Résultat d'exploitation", format_number_fr(annual_results['Résultat d\'exploitation']) + " €")
-        st.metric("Résultat net", format_number_fr(annual_results['Résultat net']) + " €")
+        total_costs = (annual_results['Coût d\'achat'] + 
+                      annual_results['Frais de livraison'] + 
+                      annual_results['Commissions'] + 
+                      annual_results['Coûts fixes'])
+        st.metric("Coûts totaux", f"{format_fr(total_costs)} €")
+        st.metric("Résultat d'exploitation", f"{format_fr(annual_results['Résultat d\'exploitation'])} €")
+        st.metric("Résultat net", f"{format_fr(annual_results['Résultat net'])} €")
     
     with col3:
-        st.metric("Taux de marge brute", format_number_fr(annual_results['Taux de marge brute'], 1) + "%")
-        st.metric("Taux de rentabilité d'exploitation", 
-                 format_number_fr(annual_results['Taux de rentabilité d\'exploitation'], 1) + "%")
-        st.metric("Taux de rentabilité nette", 
-                 format_number_fr(annual_results['Taux de rentabilité nette'], 1) + "%")
+        st.metric("Taux de marge brute", f"{format_fr(annual_results['Taux de marge brute'], 1)}%")
+        st.metric("Taux de rentabilité d'exploitation", f"{format_fr(annual_results['Taux de rentabilité d\'exploitation'], 1)}%")
+        st.metric("Taux de rentabilité nette", f"{format_fr(annual_results['Taux de rentabilité nette'], 1)}%")
+
 
     # Graphiques
     st.header("Évolution Mensuelle")
@@ -239,31 +238,20 @@ def main():
     st.plotly_chart(fig2)
     
     # Affichage des données mensuelles détaillées
-    st.header("Détail Mensuel")
-    st.dataframe(monthly_df.style.format({
+       st.header("Détail Mensuel")
     formatted_df = monthly_df.style.format({
-        'Trafic': lambda x: format_number_fr(x, 0),
-        'Nombre de commandes': lambda x: format_number_fr(x, 0),
-        'Chiffre d\'affaires': lambda x: format_number_fr(x) + " €",
-        'Coût d\'achat': lambda x: format_number_fr(x) + " €",
-        'Frais de livraison': lambda x: format_number_fr(x) + " €",
-        'Commissions': lambda x: format_number_fr(x) + " €",
-        'Coûts fixes': lambda x: format_number_fr(x) + " €",
-        'Marge brute': lambda x: format_number_fr(x) + " €",
-        'Résultat d\'exploitation': lambda x: format_number_fr(x) + " €",
-        'Résultat net': lambda x: format_number_fr(x) + " €"
+        'Trafic': lambda x: format_fr(x, 0),
+        'Nombre de commandes': lambda x: format_fr(x, 0),
+        'Chiffre d\'affaires': lambda x: f"{format_fr(x)} €",
+        'Coût d\'achat': lambda x: f"{format_fr(x)} €",
+        'Frais de livraison': lambda x: f"{format_fr(x)} €",
+        'Commissions': lambda x: f"{format_fr(x)} €",
+        'Coûts fixes': lambda x: f"{format_fr(x)} €",
+        'Marge brute': lambda x: f"{format_fr(x)} €",
+        'Résultat d\'exploitation': lambda x: f"{format_fr(x)} €",
+        'Résultat net': lambda x: f"{format_fr(x)} €"
     })
-        'Trafic': '{:,.0f}',
-        'Nombre de commandes': '{:,.0f}',
-        'Chiffre d\'affaires': '{:,.2f} €',
-        'Coût d\'achat': '{:,.2f} €',
-        'Frais de livraison': '{:,.2f} €',
-        'Commissions': '{:,.2f} €',
-        'Coûts fixes': '{:,.2f} €',
-        'Marge brute': '{:,.2f} €',
-        'Résultat d\'exploitation': '{:,.2f} €',
-        'Résultat net': '{:,.2f} €'
-    }))
+    st.dataframe(formatted_df)
 
     st.header("Analyse du Seuil de Rentabilité")
     
@@ -274,14 +262,21 @@ def main():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.metric("Nombre de commandes au point mort", f"{break_even_data['Seuil de rentabilité (nb commandes)']:,.0f}")
-        st.metric("CA au point mort", f"{break_even_data['Chiffre d\'affaires au point mort']:,.2f} €")
-        st.metric("Marge unitaire", f"{break_even_data['Marge unitaire']:,.2f} €")
+        st.metric("Nombre de commandes au point mort", 
+                 f"{format_fr(break_even_data['Seuil de rentabilité (nb commandes)'], 0)}")
+        st.metric("CA au point mort", 
+                 f"{format_fr(break_even_data['Chiffre d\'affaires au point mort'])} €")
+        st.metric("Marge unitaire", 
+                 f"{format_fr(break_even_data['Marge unitaire'])} €")
     
     with col2:
-        st.metric("Coûts variables unitaires", f"{break_even_data['Coûts variables unitaires']:,.2f} €")
-        st.metric("Coûts fixes annuels", f"{break_even_data['Coûts fixes annuels']:,.2f} €")
-        st.metric("Mois pour atteindre le point mort", f"{break_even_data['Mois pour atteindre le point mort']:,.1f}")
+        st.metric("Coûts variables unitaires", 
+                 f"{format_fr(break_even_data['Coûts variables unitaires'])} €")
+        st.metric("Coûts fixes annuels", 
+                 f"{format_fr(break_even_data['Coûts fixes annuels'])} €")
+        st.metric("Mois pour atteindre le point mort", 
+                 f"{int(break_even_data['Mois pour atteindre le point mort'])} mois")
+
 
     # Graphique du point mort
     order_range = np.linspace(0, break_even_data['Seuil de rentabilité (nb commandes)'] * 2, 100)
@@ -318,20 +313,31 @@ def main():
         marker=dict(size=12, symbol='star', color='yellow', line=dict(color='black', width=2))
     ))
     
+# Mise à jour du graphique du point mort
     fig_break_even.update_layout(
-        title='Analyse du Point Mort',
-        xaxis_title='Nombre de commandes',
-        yaxis_title='Euros',
-        showlegend=True,
         annotations=[
             dict(
                 x=break_even_data['Seuil de rentabilité (nb commandes)'],
                 y=break_even_data['Chiffre d\'affaires au point mort'],
-                text=f"Point mort:<br>{break_even_data['Seuil de rentabilité (nb commandes)']:,.0f} commandes<br>{break_even_data['Chiffre d\'affaires au point mort']:,.0f} €",
+                text=f"Point mort:<br>{format_fr(break_even_data['Seuil de rentabilité (nb commandes)'], 0)} commandes<br>{format_fr(break_even_data['Chiffre d\'affaires au point mort'])} €",
                 showarrow=True,
                 arrowhead=1
             )
         ]
+    )
+# Mise à jour des axes des graphiques pour utiliser le format français
+    fig1.update_layout(
+        yaxis=dict(
+            tickformat=",",
+            separatethousands=True
+        )
+    )
+    
+    fig_break_even.update_layout(
+        yaxis=dict(
+            tickformat=",",
+            separatethousands=True
+        )
     )
     
     st.plotly_chart(fig_break_even)
