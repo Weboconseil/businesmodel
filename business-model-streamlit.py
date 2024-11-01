@@ -111,7 +111,7 @@ class BusinessModelProjection:
         
         return annual_results, monthly_df
 
-     def calculate_cash_flow(self):
+    def calculate_cash_flow(self):
         monthly_df = self.calculate_monthly_data()
         cash_flow_data = []
         cumulative_cash = self.initial_capital
