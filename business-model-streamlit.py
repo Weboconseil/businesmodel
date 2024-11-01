@@ -234,7 +234,7 @@ def main():
         'Résultat net': '{:,.2f} €'
     }))
 
-st.header("Analyse du Seuil de Rentabilité")
+    st.header("Analyse du Seuil de Rentabilité")
     
     # Calcul du seuil de rentabilité
     break_even_data = model.calculate_break_even()
