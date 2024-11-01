@@ -238,7 +238,7 @@ def main():
     st.plotly_chart(fig2)
     
     # Affichage des données mensuelles détaillées
-       st.header("Détail Mensuel")
+    st.header("Détail Mensuel")
     formatted_df = monthly_df.style.format({
         'Trafic': lambda x: format_fr(x, 0),
         'Nombre de commandes': lambda x: format_fr(x, 0),
