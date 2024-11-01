@@ -156,6 +156,49 @@ class BusinessModelProjection:
         
         return pd.DataFrame(cash_flow_data)
 
+    def calculate_balance_sheet(self):
+        """Calcule le bilan prévisionnel à la fin de l'année."""
+        # Récupération des données nécessaires
+        cash_flow_df = self.calculate_cash_flow()
+        annual_results, monthly_df = self.calculate_annual_projections()
+        
+        # ACTIF
+        actif = {
+            'Actif immobilisé': {
+                'Immobilisations incorporelles': 0,  # Site web amorti sur l'année
+                'Immobilisations corporelles': 0,    # Pas d'immobilisations corporelles dans ce modèle
+            },
+            'Actif circulant': {
+                'Stocks': self.initial_stock,  # Stock final
+                'Créances clients': monthly_df['Chiffre d\'affaires'].iloc[-1] * (self.payment_delay_clients / 30),  # Créances du dernier mois
+                'Trésorerie': cash_flow_df['Solde de trésorerie'].iloc[-1]
+            }
+        }
+        
+        # PASSIF
+        passif = {
+            'Capitaux propres': {
+                'Capital social': self.initial_capital,
+                'Résultat de l\'exercice': annual_results['Résultat net']
+            },
+            'Dettes': {
+                'Dettes fournisseurs': monthly_df['Coût d\'achat'].iloc[-1] * (self.payment_delay_suppliers / 30),  # Dettes du dernier mois
+                'Dettes fiscales': annual_results['Résultat d\'exploitation'] * self.tax_rate  # Impôts à payer
+            }
+        }
+        
+        # Calcul des totaux
+        actif['Total actif immobilisé'] = sum(actif['Actif immobilisé'].values())
+        actif['Total actif circulant'] = sum(actif['Actif circulant'].values())
+        actif['Total actif'] = actif['Total actif immobilisé'] + actif['Total actif circulant']
+        
+        passif['Total capitaux propres'] = sum(passif['Capitaux propres'].values())
+        passif['Total dettes'] = sum(passif['Dettes'].values())
+        passif['Total passif'] = passif['Total capitaux propres'] + passif['Total dettes']
+        
+        return actif, passif
+
+
 def main():
     st.title("📊 Simulateur de Modèle Économique Annuel")
     
@@ -320,6 +363,71 @@ def main():
         'Flux net': '{:,.2f} €',
         'Solde de trésorerie': '{:,.2f} €'
     }))
+
+# Nouvelle section pour le bilan
+    st.header("Bilan Prévisionnel")
+    
+    # Calcul du bilan
+    actif, passif = model.calculate_balance_sheet()
+    
+    # Affichage du bilan en deux colonnes
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("ACTIF")
+        
+        st.write("Actif immobilisé:")
+        for key, value in actif['Actif immobilisé'].items():
+            st.write(f"{key}: {value:,.2f} €")
+        st.write(f"**Total actif immobilisé: {actif['Total actif immobilisé']:,.2f} €**")
+        
+        st.write("Actif circulant:")
+        for key, value in actif['Actif circulant'].items():
+            st.write(f"{key}: {value:,.2f} €")
+        st.write(f"**Total actif circulant: {actif['Total actif circulant']:,.2f} €**")
+        
+        st.write(f"**TOTAL ACTIF: {actif['Total actif']:,.2f} €**")
+    
+    with col2:
+        st.subheader("PASSIF")
+        
+        st.write("Capitaux propres:")
+        for key, value in passif['Capitaux propres'].items():
+            st.write(f"{key}: {value:,.2f} €")
+        st.write(f"**Total capitaux propres: {passif['Total capitaux propres']:,.2f} €**")
+        
+        st.write("Dettes:")
+        for key, value in passif['Dettes'].items():
+            st.write(f"{key}: {value:,.2f} €")
+        st.write(f"**Total dettes: {passif['Total dettes']:,.2f} €**")
+        
+        st.write(f"**TOTAL PASSIF: {passif['Total passif']:,.2f} €**")
+    
+    # Graphique de répartition du bilan
+    st.subheader("Répartition du Bilan")
+    
+    # Préparation des données pour les graphiques
+    actif_data = {
+        'Catégorie': ['Actif immobilisé', 'Actif circulant'],
+        'Montant': [actif['Total actif immobilisé'], actif['Total actif circulant']]
+    }
+    
+    passif_data = {
+        'Catégorie': ['Capitaux propres', 'Dettes'],
+        'Montant': [passif['Total capitaux propres'], passif['Total dettes']]
+    }
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        fig_actif = px.pie(actif_data, values='Montant', names='Catégorie', 
+                          title='Répartition de l\'actif')
+        st.plotly_chart(fig_actif)
+    
+    with col2:
+        fig_passif = px.pie(passif_data, values='Montant', names='Catégorie', 
+                           title='Répartition du passif')
+        st.plotly_chart(fig_passif)
 
 
 if __name__ == "__main__":
