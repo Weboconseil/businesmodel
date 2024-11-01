@@ -12,7 +12,8 @@ class BusinessModelProjection:
                  initial_capital=10000, 
                  initial_stock=3000, 
                  purchase_price_rate=0.4,
-                 monthly_traffic_growth=0.05):  # Ajout d'un taux de croissance mensuel
+                 monthly_traffic_growth=0.05,
+                 tax_rate=0.20):  # Ajout du taux d'imposition
         
         self.initial_traffic = initial_traffic
         self.conversion_rate = conversion_rate
@@ -21,6 +22,7 @@ class BusinessModelProjection:
         self.initial_stock = initial_stock
         self.purchase_price_rate = purchase_price_rate
         self.monthly_traffic_growth = monthly_traffic_growth
+        self.tax_rate = tax_rate
         
         # Fixed Costs
         self.shopify_subscription = 32
@@ -61,9 +63,10 @@ class BusinessModelProjection:
                 self.initial_advertising
             )
             
-            # Marges
+            # Résultats
             gross_margin = turnover - purchase_cost - shipping_costs - payment_fees
-            net_margin = gross_margin - fixed_costs
+            operating_income = gross_margin - fixed_costs
+            net_income = operating_income * (1 - self.tax_rate)
             
             monthly_data.append({
                 'Mois': f'M{month}',
@@ -75,7 +78,8 @@ class BusinessModelProjection:
                 'Commissions': payment_fees,
                 'Coûts fixes': fixed_costs,
                 'Marge brute': gross_margin,
-                'Marge nette': net_margin
+                'Résultat d\'exploitation': operating_income,
+                'Résultat net': net_income
             })
         
         return pd.DataFrame(monthly_data)
@@ -91,12 +95,14 @@ class BusinessModelProjection:
             'Commissions': monthly_df['Commissions'].sum(),
             'Coûts fixes': monthly_df['Coûts fixes'].sum(),
             'Marge brute': monthly_df['Marge brute'].sum(),
-            'Marge nette': monthly_df['Marge nette'].sum()
+            'Résultat d\'exploitation': monthly_df['Résultat d\'exploitation'].sum(),
+            'Résultat net': monthly_df['Résultat net'].sum()
         }
         
         # Ajout des ratios
         annual_results['Taux de marge brute'] = (annual_results['Marge brute'] / annual_results['Chiffre d\'affaires']) * 100
-        annual_results['Taux de marge nette'] = (annual_results['Marge nette'] / annual_results['Chiffre d\'affaires']) * 100
+        annual_results['Taux de rentabilité d\'exploitation'] = (annual_results['Résultat d\'exploitation'] / annual_results['Chiffre d\'affaires']) * 100
+        annual_results['Taux de rentabilité nette'] = (annual_results['Résultat net'] / annual_results['Chiffre d\'affaires']) * 100
         
         return annual_results, monthly_df
 
@@ -113,6 +119,7 @@ def main():
     initial_stock = st.sidebar.number_input("Stock initial (€)", min_value=1000, value=3000)
     purchase_price_rate = st.sidebar.number_input("Taux de prix d'achat (%)", min_value=0.1, max_value=1.0, value=0.4, format="%.2f")
     monthly_traffic_growth = st.sidebar.number_input("Croissance mensuelle du trafic (%)", min_value=0.0, max_value=1.0, value=0.05, format="%.2f")
+    tax_rate = st.sidebar.number_input("Taux d'imposition (%)", min_value=0.0, max_value=1.0, value=0.20, format="%.2f")
     
     # Instantiate the model
     model = BusinessModelProjection(
@@ -122,7 +129,8 @@ def main():
         initial_capital=initial_capital,
         initial_stock=initial_stock,
         purchase_price_rate=purchase_price_rate,
-        monthly_traffic_growth=monthly_traffic_growth
+        monthly_traffic_growth=monthly_traffic_growth,
+        tax_rate=tax_rate
     )
     
     # Calculate projections
@@ -140,23 +148,23 @@ def main():
     
     with col2:
         st.metric("Coûts totaux", f"{(annual_results['Coût d\'achat'] + annual_results['Frais de livraison'] + annual_results['Commissions'] + annual_results['Coûts fixes']):,.2f} €")
-        st.metric("Taux de marge brute", f"{annual_results['Taux de marge brute']:.1f}%")
-        st.metric("Marge nette", f"{annual_results['Marge nette']:,.2f} €")
+        st.metric("Résultat d'exploitation", f"{annual_results['Résultat d\'exploitation']:,.2f} €")
+        st.metric("Résultat net", f"{annual_results['Résultat net']:,.2f} €")
     
     with col3:
-        st.metric("Coûts fixes annuels", f"{annual_results['Coûts fixes']:,.2f} €")
-        st.metric("Coûts variables", f"{(annual_results['Coût d\'achat'] + annual_results['Frais de livraison'] + annual_results['Commissions']):,.2f} €")
-        st.metric("Taux de marge nette", f"{annual_results['Taux de marge nette']:.1f}%")
+        st.metric("Taux de marge brute", f"{annual_results['Taux de marge brute']:.1f}%")
+        st.metric("Taux de rentabilité d'exploitation", f"{annual_results['Taux de rentabilité d\'exploitation']:.1f}%")
+        st.metric("Taux de rentabilité nette", f"{annual_results['Taux de rentabilité nette']:.1f}%")
 
     # Graphiques
     st.header("Évolution Mensuelle")
     
-    # Graphique 1: Évolution du CA et des marges
+    # Graphique 1: Évolution du CA et des résultats
     fig1 = go.Figure()
     fig1.add_trace(go.Scatter(x=monthly_df['Mois'], y=monthly_df['Chiffre d\'affaires'], name='CA', mode='lines+markers'))
-    fig1.add_trace(go.Scatter(x=monthly_df['Mois'], y=monthly_df['Marge brute'], name='Marge brute', mode='lines+markers'))
-    fig1.add_trace(go.Scatter(x=monthly_df['Mois'], y=monthly_df['Marge nette'], name='Marge nette', mode='lines+markers'))
-    fig1.update_layout(title='Évolution du CA et des marges', xaxis_title='Mois', yaxis_title='Euros')
+    fig1.add_trace(go.Scatter(x=monthly_df['Mois'], y=monthly_df['Résultat d\'exploitation'], name='Résultat d\'exploitation', mode='lines+markers'))
+    fig1.add_trace(go.Scatter(x=monthly_df['Mois'], y=monthly_df['Résultat net'], name='Résultat net', mode='lines+markers'))
+    fig1.update_layout(title='Évolution du CA et des résultats', xaxis_title='Mois', yaxis_title='Euros')
     st.plotly_chart(fig1)
     
     # Graphique 2: Répartition des coûts
@@ -183,7 +191,8 @@ def main():
         'Commissions': '{:,.2f} €',
         'Coûts fixes': '{:,.2f} €',
         'Marge brute': '{:,.2f} €',
-        'Marge nette': '{:,.2f} €'
+        'Résultat d\'exploitation': '{:,.2f} €',
+        'Résultat net': '{:,.2f} €'
     }))
 
 if __name__ == "__main__":
